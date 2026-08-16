@@ -10,10 +10,10 @@ Built with **Spring Boot 4**, **Spring Data JPA**, **PostgreSQL**, and **Flyway*
 
 - **Catalog** — browse songs, artists, albums and genres (public, no auth required)
 - **Playlists** — create, update, delete, reorder items, bulk-add songs or all songs from an artist
-- **Queue** — generate a playback queue with configurable shuffle strategies (`RANDOM`, `NONE`)
+- **Queue** — generate a playback queue with configurable shuffle strategies (`RANDOM`, `NONE`, `SMART`)
 - **Recommendations** — get catalog suggestions compatible with a playlist's content
 - **Export** — download a playlist as JSON or M3U
-- **Player** — centralized player state with play/pause/stop/next/previous/seek controls
+- **Player** — centralized player state with play/pause/stop/next/previous/seek controls and **2× speed mode**
 
 ---
 
@@ -114,7 +114,8 @@ Click **Authorize** in the Swagger UI and enter your credentials.
 | `GET` | `/api/v1/playlists/{id}/export` | ✓ | Export playlist (JSON / M3U) |
 | `GET` | `/api/v1/player` | ✓ | Get player state |
 | `POST` | `/api/v1/player/playlists/{id}/play` | ✓ | Load and play a playlist |
-| `POST` | `/api/v1/player/play` | ✓ | Resume playback |
+| `POST` | `/api/v1/player/play` | ✓ | Resume playback at 1× speed |
+| `POST` | `/api/v1/player/play-2x` | ✓ | Play at 2× speed (1 real sec = 2 song-secs) |
 | `POST` | `/api/v1/player/pause` | ✓ | Pause playback |
 | `POST` | `/api/v1/player/stop` | ✓ | Stop playback |
 | `POST` | `/api/v1/player/next` | ✓ | Skip to next song |
