@@ -17,11 +17,14 @@ import org.springframework.stereotype.Component;
  * <p>Uses a <b>virtual clock</b>: instead of storing a static {@code positionSeconds},
  * the state records when playback started ({@code playbackStartedAt}) and the accumulated
  * offset ({@code seekOffset}). The effective position is computed on every read as
- * {@code seekOffset + elapsed}. When the elapsed time exceeds the current song's duration,
- * {@link #get()} automatically advances to the next song in the queue.
+ * {@code seekOffset + elapsed * speedMultiplier}. When the position exceeds the current
+ * song's duration the player auto-advances to the next song in the queue.
+ *
+ * <p>The {@code speedMultiplier} is {@code 1} for {@link PlaybackStatus#PLAYING} and
+ * {@code 2} for {@link PlaybackStatus#PLAYING_2X}.
  *
  * <p>All mutations replace the internal {@link InternalState} atomically via
- * {@link AtomicReference#compareAndSet} so no external synchronisation is needed.
+ * {@link AtomicReference#compareAndSet}, so no external synchronisation is needed.
  */
 @Component
 public class PlayerState {
@@ -36,7 +39,8 @@ public class PlayerState {
             List<QueueItem> queue,
             int queueIndex,
             Instant playbackStartedAt,
-            int seekOffset
+            int seekOffset,
+            int speedMultiplier
     ) {
         UUID currentSongId() {
             return (queue.isEmpty() || queueIndex < 0) ? null : queue.get(queueIndex).songId();
@@ -45,13 +49,17 @@ public class PlayerState {
         int currentDuration() {
             return (queue.isEmpty() || queueIndex < 0) ? 0 : queue.get(queueIndex).durationSeconds();
         }
+
+        boolean isPlaying() {
+            return status == PlaybackStatus.PLAYING || status == PlaybackStatus.PLAYING_2X;
+        }
     }
 
     private final AtomicReference<InternalState> ref = new AtomicReference<>(stopped());
 
     private static InternalState stopped() {
         return new InternalState(PlaybackStatus.STOPPED, null, ShuffleMode.RANDOM,
-                List.of(), -1, null, 0);
+                List.of(), -1, null, 0, 1);
     }
 
     /**
@@ -60,7 +68,7 @@ public class PlayerState {
      */
     public PlaybackState get() {
         InternalState s = ref.get();
-        if (s.status() != PlaybackStatus.PLAYING || s.queue().isEmpty()) {
+        if (!s.isPlaying() || s.queue().isEmpty()) {
             return buildPlaybackState(s, s.seekOffset());
         }
         return resolvePlayingState(s);
@@ -69,22 +77,35 @@ public class PlayerState {
     public PlaybackState load(UUID playlistId, List<QueueItem> queue, ShuffleMode shuffleMode) {
         if (queue.isEmpty()) {
             InternalState s = new InternalState(PlaybackStatus.STOPPED, playlistId, shuffleMode,
-                    List.of(), -1, null, 0);
+                    List.of(), -1, null, 0, 1);
             ref.set(s);
             return buildPlaybackState(s, 0);
         }
         InternalState s = new InternalState(PlaybackStatus.PLAYING, playlistId, shuffleMode,
-                List.copyOf(queue), 0, Instant.now(), 0);
+                List.copyOf(queue), 0, Instant.now(), 0, 1);
         ref.set(s);
         return buildPlaybackState(s, 0);
     }
 
+    /** Resumes playback at 1× speed. */
     public PlaybackState play() {
         return update(s -> {
             if (s.currentSongId() == null) throw new PlayerStateException("No playlist loaded");
             if (s.status() == PlaybackStatus.PLAYING) return s;
+            int offset = s.status() == PlaybackStatus.PAUSED ? s.seekOffset() : computePosition(s);
             return new InternalState(PlaybackStatus.PLAYING, s.playlistId(), s.shuffleMode(),
-                    s.queue(), s.queueIndex(), Instant.now(), s.seekOffset());
+                    s.queue(), s.queueIndex(), Instant.now(), offset, 1);
+        });
+    }
+
+    /** Starts or switches to 2× speed playback (1 real second = 2 song-seconds). */
+    public PlaybackState playDouble() {
+        return update(s -> {
+            if (s.currentSongId() == null) throw new PlayerStateException("No playlist loaded");
+            if (s.status() == PlaybackStatus.PLAYING_2X) return s;
+            int offset = s.status() == PlaybackStatus.PAUSED ? s.seekOffset() : computePosition(s);
+            return new InternalState(PlaybackStatus.PLAYING_2X, s.playlistId(), s.shuffleMode(),
+                    s.queue(), s.queueIndex(), Instant.now(), offset, 2);
         });
     }
 
@@ -93,7 +114,7 @@ public class PlayerState {
             if (s.currentSongId() == null) throw new PlayerStateException("No playlist loaded");
             if (s.status() == PlaybackStatus.PAUSED) return s;
             return new InternalState(PlaybackStatus.PAUSED, s.playlistId(), s.shuffleMode(),
-                    s.queue(), s.queueIndex(), null, computePosition(s));
+                    s.queue(), s.queueIndex(), null, computePosition(s), 1);
         });
     }
 
@@ -105,8 +126,9 @@ public class PlayerState {
         return update(s -> {
             if (s.queue().isEmpty()) throw new PlayerStateException("No playlist loaded");
             int idx = (s.queueIndex() + 1) % s.queue().size();
-            return new InternalState(PlaybackStatus.PLAYING, s.playlistId(), s.shuffleMode(),
-                    s.queue(), idx, Instant.now(), 0);
+            return new InternalState(s.status().isActive() ? s.status() : PlaybackStatus.PLAYING,
+                    s.playlistId(), s.shuffleMode(),
+                    s.queue(), idx, Instant.now(), 0, s.speedMultiplier());
         });
     }
 
@@ -114,8 +136,9 @@ public class PlayerState {
         return update(s -> {
             if (s.queue().isEmpty()) throw new PlayerStateException("No playlist loaded");
             int idx = s.queueIndex() <= 0 ? s.queue().size() - 1 : s.queueIndex() - 1;
-            return new InternalState(PlaybackStatus.PLAYING, s.playlistId(), s.shuffleMode(),
-                    s.queue(), idx, Instant.now(), 0);
+            return new InternalState(s.status().isActive() ? s.status() : PlaybackStatus.PLAYING,
+                    s.playlistId(), s.shuffleMode(),
+                    s.queue(), idx, Instant.now(), 0, s.speedMultiplier());
         });
     }
 
@@ -123,19 +146,19 @@ public class PlayerState {
         if (positionSeconds < 0) throw new PlayerStateException("Seek position cannot be negative");
         return update(s -> {
             if (s.currentSongId() == null) throw new PlayerStateException("No song playing");
-            Instant startedAt = s.status() == PlaybackStatus.PLAYING ? Instant.now() : null;
+            Instant startedAt = s.isPlaying() ? Instant.now() : null;
             return new InternalState(s.status(), s.playlistId(), s.shuffleMode(),
-                    s.queue(), s.queueIndex(), startedAt, positionSeconds);
+                    s.queue(), s.queueIndex(), startedAt, positionSeconds, s.speedMultiplier());
         });
     }
 
     /**
      * Computes the effective playback state, advancing to the next song(s) if the
-     * elapsed time has exceeded the current song's duration.
+     * elapsed virtual time has exceeded the current song's duration.
      */
     private PlaybackState resolvePlayingState(InternalState s) {
         long elapsed = Duration.between(s.playbackStartedAt(), Instant.now()).toSeconds();
-        long remaining = s.seekOffset() + elapsed;
+        long remaining = s.seekOffset() + elapsed * s.speedMultiplier();
 
         int idx = s.queueIndex();
         int steps = 0;
@@ -149,22 +172,22 @@ public class PlayerState {
 
         if (idx != s.queueIndex()) {
             InternalState advanced = new InternalState(
-                    PlaybackStatus.PLAYING, s.playlistId(), s.shuffleMode(),
-                    s.queue(), idx, Instant.now(), 0);
+                    s.status(), s.playlistId(), s.shuffleMode(),
+                    s.queue(), idx, Instant.now(), 0, s.speedMultiplier());
             ref.compareAndSet(s, advanced);
         }
 
         int position = (int) Math.max(0, remaining);
-        return new PlaybackState(PlaybackStatus.PLAYING, s.playlistId(),
+        return new PlaybackState(s.status(), s.playlistId(),
                 s.queue().get(idx).songId(), position, s.shuffleMode(), Instant.now());
     }
 
     private static int computePosition(InternalState s) {
-        if (s.status() != PlaybackStatus.PLAYING || s.playbackStartedAt() == null) {
+        if (!s.isPlaying() || s.playbackStartedAt() == null) {
             return s.seekOffset();
         }
         long elapsed = Duration.between(s.playbackStartedAt(), Instant.now()).toSeconds();
-        return (int) (s.seekOffset() + elapsed);
+        return (int) (s.seekOffset() + elapsed * s.speedMultiplier());
     }
 
     private static PlaybackState buildPlaybackState(InternalState s, int positionSeconds) {

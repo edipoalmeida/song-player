@@ -19,6 +19,7 @@ public class PlayerController implements PlayerApi {
     @Override public PlaybackStateResponse state()                                              { return playerService.state(); }
     @Override public PlaybackStateResponse playPlaylist(UUID playlistId, ShuffleMode strategy)  { return playerService.playPlaylist(playlistId, strategy); }
     @Override public PlaybackStateResponse play()                                               { return playerService.play(); }
+    @Override public PlaybackStateResponse playDouble()                                         { return playerService.playDouble(); }
     @Override public PlaybackStateResponse pause()                                              { return playerService.pause(); }
     @Override public PlaybackStateResponse stop()                                               { return playerService.stop(); }
     @Override public PlaybackStateResponse next()                                               { return playerService.next(); }

@@ -39,13 +39,22 @@ public interface PlayerApi {
     PlaybackStateResponse playPlaylist(@PathVariable UUID playlistId,
                                        @RequestParam(defaultValue = "RANDOM") ShuffleMode strategy);
 
-    @Operation(summary = "Resume playback")
+    @Operation(summary = "Resume playback at 1× speed")
     @ApiResponse(responseCode = "200", description = "Playback resumed")
     @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content)
     @ApiResponse(responseCode = "409", description = "Cannot resume — invalid player state",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
     @PostMapping("/play")
     PlaybackStateResponse play();
+
+    @Operation(summary = "Resume or switch to 2× speed playback",
+        description = "Every real second counts as 2 song-seconds. Transitions from any state (including 1× playing).")
+    @ApiResponse(responseCode = "200", description = "Playback at 2× speed")
+    @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content)
+    @ApiResponse(responseCode = "409", description = "No active playlist loaded",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+    @PostMapping("/play-2x")
+    PlaybackStateResponse playDouble();
 
     @Operation(summary = "Pause playback")
     @ApiResponse(responseCode = "200", description = "Playback paused")

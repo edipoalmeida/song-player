@@ -276,4 +276,55 @@ class PlayerStateTest {
             assertThat(s.currentSongId()).isNotNull();
         }
     }
+
+    // ── 2× speed ──────────────────────────────────────────────────────────────
+
+    @Test
+    void playDoubleWhenNothingLoadedThrows() {
+        assertThatThrownBy(() -> state.playDouble()).isInstanceOf(PlayerStateException.class);
+    }
+
+    @Test
+    void playDoubleSetsStatus() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
+        assertThat(state.playDouble().status()).isEqualTo(PlaybackStatus.PLAYING_2X);
+    }
+
+    @Test
+    void playDoubleIsIdempotent() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
+        state.playDouble();
+        assertThat(state.playDouble().status()).isEqualTo(PlaybackStatus.PLAYING_2X);
+    }
+
+    @Test
+    void switchFrom2xTo1xRestoresPlayingStatus() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
+        state.playDouble();
+        assertThat(state.play().status()).isEqualTo(PlaybackStatus.PLAYING);
+    }
+
+    @Test
+    void pauseFrom2xCapturesPosition() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
+        state.playDouble();
+        PlaybackState paused = state.pause();
+        assertThat(paused.status()).isEqualTo(PlaybackStatus.PAUSED);
+    }
+
+    @Test
+    void nextPreservesSpeedMode() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
+        state.playDouble();
+        assertThat(state.next().status()).isEqualTo(PlaybackStatus.PLAYING_2X);
+    }
+
+    @Test
+    void seekWhileIn2xPreservesSpeedMode() {
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
+        state.playDouble();
+        PlaybackState after = state.seek(10);
+        assertThat(after.status()).isEqualTo(PlaybackStatus.PLAYING_2X);
+        assertThat(after.positionSeconds()).isEqualTo(10);
+    }
 }

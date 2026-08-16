@@ -50,6 +50,7 @@ public class PlayerService {
     }
 
     public PlaybackStateResponse play()                     { return toResponse(playerState.play()); }
+    public PlaybackStateResponse playDouble()               { return toResponse(playerState.playDouble()); }
     public PlaybackStateResponse pause()                    { return toResponse(playerState.pause()); }
     public PlaybackStateResponse stop()                     { return toResponse(playerState.stop()); }
     public PlaybackStateResponse next()                     { return toResponse(playerState.next()); }
