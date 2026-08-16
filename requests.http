@@ -1,0 +1,162 @@
+### GET HEALTH CHECK
+GET http://localhost:8080/actuator/health
+
+###
+# ─────────────────────────────────────────
+#  SONGS — catálogo de músicas (somente leitura)
+# ─────────────────────────────────────────
+
+### LIST ALL SONGS
+GET http://localhost:8080/api/v1/songs
+
+### GET SONG BY ID
+GET http://localhost:8080/api/v1/songs/00000000-0000-0000-0000-000000000001
+
+###
+# ─────────────────────────────────────────
+#  PLAYLISTS — ciclo de vida
+# ─────────────────────────────────────────
+
+### CREATE PLAYLIST
+POST http://localhost:8080/api/v1/playlists
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "name": "Favoritos",
+  "description": "Melhores músicas solicitadas",
+  "coverImageUrl": "https://example.com/cover.jpg"
+}
+
+### LIST PLAYLISTS
+GET http://localhost:8080/api/v1/playlists
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### GET PLAYLIST BY ID
+GET http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### UPDATE PLAYLIST
+PUT http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "name": "Favoritos Atualizados",
+  "description": "Músicas preferidas - Diferentes",
+  "coverImageUrl": "https://example.com/new-cover.jpg"
+}
+
+### DELETE PLAYLIST
+DELETE http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001
+Authorization: Basic YWRtaW46YWRtaW4=
+
+###
+# ─────────────────────────────────────────
+#  PLAYLISTS — itens (songs)
+# ─────────────────────────────────────────
+
+### ADD SONG TO PLAYLIST
+POST http://localhost:8080/api/v1/playlists/8c783d80-2c6b-4dbb-bd22-35457ed1bf7c/songs
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "songId": "00000000-0000-0000-0000-000000000002"
+}
+
+### ADD MULTIPLE SONGS TO PLAYLIST (bulk)
+POST http://localhost:8080/api/v1/playlists/9f2041fe-6507-4138-8ce7-a88c18019c2d/songs/batch
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "songIds": [
+    "20000000-0000-0000-0000-000000000052",
+    "00000000-0000-0000-0000-000000000003",
+    "00000000-0000-0000-0000-000000000004"
+  ]
+}
+
+### ADD ALL SONGS FROM ARTIST TO PLAYLIST
+POST http://localhost:8080/api/v1/playlists/38f3ded4-a9c8-4624-8c85-51d61fac2424/songs/artist
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "artistId": "00000000-0000-0000-0000-00000000002f"
+}
+
+### REMOVE SONG FROM PLAYLIST
+DELETE http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001/items/00000000-0000-0000-0000-000000000003
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### REORDER PLAYLIST ITEMS
+PUT http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001/order
+Content-Type: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "items": [
+    { "playlistItemId": "00000000-0000-0000-0000-000000000003", "position": 0 },
+    { "playlistItemId": "00000000-0000-0000-0000-000000000004", "position": 1 }
+  ]
+}
+
+###
+# ─────────────────────────────────────────
+#  PLAYLISTS — queue, recomendações e export
+# ─────────────────────────────────────────
+
+### GENERATE QUEUE (shuffle: RANDOM | NONE)
+GET http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001/queue?strategy=RANDOM
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### GET RECOMMENDATIONS
+GET http://localhost:8080/api/v1/playlists/ca070091-8c10-4669-a012-f1d15c063b1f/recommendations?limit=10
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### EXPORT PLAYLIST AS JSON
+GET http://localhost:8080/api/v1/playlists/38f3ded4-a9c8-4624-8c85-51d61fac2424/export?format=json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### EXPORT PLAYLIST AS M3U
+GET http://localhost:8080/api/v1/playlists/38f3ded4-a9c8-4624-8c85-51d61fac2424/export?format=m3u
+Authorization: Basic YWRtaW46YWRtaW4=
+
+###
+# ─────────────────────────────────────────
+#  PLAYER — controles de reprodução
+# ─────────────────────────────────────────
+
+### GET PLAYER STATE
+GET http://localhost:8080/api/v1/player
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### LOAD AND PLAY PLAYLIST (shuffle: RANDOM | NONE)
+POST http://localhost:8080/api/v1/player/playlists/8c783d80-2c6b-4dbb-bd22-35457ed1bf7c/play?strategy=RANDOM
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### RESUME PLAYBACK
+POST http://localhost:8080/api/v1/player/play
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### PAUSE PLAYBACK
+POST http://localhost:8080/api/v1/player/pause
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### STOP PLAYBACK
+POST http://localhost:8080/api/v1/player/stop
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### NEXT SONG
+POST http://localhost:8080/api/v1/player/next
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### PREVIOUS SONG
+POST http://localhost:8080/api/v1/player/previous
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### SEEK (positionSeconds >= 0)
+POST http://localhost:8080/api/v1/player/seek?positionSeconds=30
+Authorization: Basic YWRtaW46YWRtaW4=
