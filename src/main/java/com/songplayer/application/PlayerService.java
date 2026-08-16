@@ -6,7 +6,9 @@ import com.songplayer.domain.PlaybackState;
 import com.songplayer.domain.ShuffleMode;
 import com.songplayer.persistence.entity.PlaylistEntity;
 import com.songplayer.persistence.repository.PlaylistRepository;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +36,16 @@ public class PlayerService {
     public PlaybackStateResponse playPlaylist(UUID playlistId, ShuffleMode strategy) {
         PlaylistEntity playlist = playlistRepository.findDetailedById(playlistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Playlist", playlistId));
-        List<UUID> queue = shuffleStrategyFactory.forMode(strategy).shuffle(playlist.getItems());
+
+        Map<UUID, Integer> durationBySongId = new HashMap<>();
+        playlist.getItems().forEach(item ->
+                durationBySongId.putIfAbsent(item.getSong().getId(), item.getSong().getDurationSeconds()));
+
+        List<UUID> shuffledIds = shuffleStrategyFactory.forMode(strategy).shuffle(playlist.getItems());
+        List<PlayerState.QueueItem> queue = shuffledIds.stream()
+                .map(id -> new PlayerState.QueueItem(id, durationBySongId.getOrDefault(id, 0)))
+                .toList();
+
         return toResponse(playerState.load(playlistId, queue, strategy));
     }
 

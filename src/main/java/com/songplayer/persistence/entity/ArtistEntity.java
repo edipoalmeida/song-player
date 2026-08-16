@@ -23,6 +23,7 @@ public class ArtistEntity {
     private String name;
 
     @OneToMany(mappedBy = "artist", fetch = FetchType.LAZY)
+    @SuppressWarnings("FieldMayBeFinal") // must not be final — Hibernate replaces this with a proxy at runtime
     private List<AlbumEntity> albums = new ArrayList<>();
 
     protected ArtistEntity() {

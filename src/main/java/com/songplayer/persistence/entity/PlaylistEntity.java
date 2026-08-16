@@ -40,6 +40,7 @@ public class PlaylistEntity {
 
     @OneToMany(mappedBy = "playlist", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @OrderBy("position ASC")
+    @SuppressWarnings("FieldMayBeFinal") // must not be final — Hibernate replaces this with a proxy at runtime
     private List<PlaylistItemEntity> items = new ArrayList<>();
 
     protected PlaylistEntity() {

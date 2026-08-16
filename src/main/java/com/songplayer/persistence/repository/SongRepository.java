@@ -11,7 +11,6 @@ import org.springframework.data.repository.query.Param;
 
 /** Catalog song queries and recommendation lookups. */
 public interface SongRepository extends JpaRepository<SongEntity, UUID> {
-    List<SongEntity> findTop20ByGenresNameIgnoreCaseOrderByTitleAsc(String genre);
     List<SongEntity> findByArtistsId(UUID artistId);
 
     /**

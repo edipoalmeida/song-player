@@ -33,7 +33,7 @@ GET http://localhost:8080/api/v1/playlists
 Authorization: Basic YWRtaW46YWRtaW4=
 
 ### GET PLAYLIST BY ID
-GET http://localhost:8080/api/v1/playlists/00000000-0000-0000-0000-000000000001
+GET http://localhost:8080/api/v1/playlists/30cfa0f9-d125-45a8-92a8-a88878740b79
 Authorization: Basic YWRtaW46YWRtaW4=
 
 ### UPDATE PLAYLIST
@@ -79,7 +79,7 @@ Authorization: Basic YWRtaW46YWRtaW4=
 }
 
 ### ADD ALL SONGS FROM ARTIST TO PLAYLIST
-POST http://localhost:8080/api/v1/playlists/38f3ded4-a9c8-4624-8c85-51d61fac2424/songs/artist
+POST http://localhost:8080/api/v1/playlists/30cfa0f9-d125-45a8-92a8-a88878740b79/songs/artist
 Content-Type: application/json
 Authorization: Basic YWRtaW46YWRtaW4=
 
@@ -134,7 +134,7 @@ GET http://localhost:8080/api/v1/player
 Authorization: Basic YWRtaW46YWRtaW4=
 
 ### LOAD AND PLAY PLAYLIST (shuffle: RANDOM | NONE)
-POST http://localhost:8080/api/v1/player/playlists/8c783d80-2c6b-4dbb-bd22-35457ed1bf7c/play?strategy=RANDOM
+POST http://localhost:8080/api/v1/player/playlists/30cfa0f9-d125-45a8-92a8-a88878740b79/play?strategy=RANDOM
 Authorization: Basic YWRtaW46YWRtaW4=
 
 ### RESUME PLAYBACK

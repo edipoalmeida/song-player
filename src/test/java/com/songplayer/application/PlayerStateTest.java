@@ -30,6 +30,10 @@ class PlayerStateTest {
         state = new PlayerState();
     }
 
+    private static PlayerState.QueueItem item(UUID id) {
+        return new PlayerState.QueueItem(id, 300);
+    }
+
     // ── initial state ─────────────────────────────────────────────────────────
 
     @Test
@@ -45,7 +49,7 @@ class PlayerStateTest {
 
     @Test
     void loadStartsPlaybackOnFirstSong() {
-        PlaybackState s = state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.RANDOM);
+        PlaybackState s = state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
         assertThat(s.status()).isEqualTo(PlaybackStatus.PLAYING);
         assertThat(s.currentSongId()).isEqualTo(SONG_1);
         assertThat(s.playlistId()).isEqualTo(PLAYLIST_ID);
@@ -75,14 +79,14 @@ class PlayerStateTest {
 
     @Test
     void playWhenPausedResumesToPlaying() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         state.pause();
         assertThat(state.play().status()).isEqualTo(PlaybackStatus.PLAYING);
     }
 
     @Test
     void playWhenAlreadyPlayingIsIdempotent() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         PlaybackState before = state.get();
         PlaybackState after = state.play();
         assertThat(after.status()).isEqualTo(PlaybackStatus.PLAYING);
@@ -98,13 +102,13 @@ class PlayerStateTest {
 
     @Test
     void pauseWhenPlayingPauses() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         assertThat(state.pause().status()).isEqualTo(PlaybackStatus.PAUSED);
     }
 
     @Test
     void pauseWhenAlreadyPausedIsIdempotent() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         state.pause();
         assertThat(state.pause().status()).isEqualTo(PlaybackStatus.PAUSED);
     }
@@ -113,7 +117,7 @@ class PlayerStateTest {
 
     @Test
     void stopClearsEverything() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.SMART);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.SMART);
         PlaybackState s = state.stop();
         assertThat(s.status()).isEqualTo(PlaybackStatus.STOPPED);
         assertThat(s.currentSongId()).isNull();
@@ -127,7 +131,7 @@ class PlayerStateTest {
 
     @Test
     void afterStopPlayThrows() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         state.stop();
         assertThatThrownBy(() -> state.play()).isInstanceOf(PlayerStateException.class);
     }
@@ -141,20 +145,20 @@ class PlayerStateTest {
 
     @Test
     void nextAdvancesToSecondSong() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2, SONG_3), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2), item(SONG_3)), ShuffleMode.RANDOM);
         assertThat(state.next().currentSongId()).isEqualTo(SONG_2);
     }
 
     @Test
     void nextWrapsAroundFromLastToFirst() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
         state.next();                                           // → SONG_2
         assertThat(state.next().currentSongId()).isEqualTo(SONG_1); // wraps
     }
 
     @Test
     void nextResetsPositionToZero() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
         state.seek(90);
         assertThat(state.next().positionSeconds()).isZero();
     }
@@ -168,13 +172,13 @@ class PlayerStateTest {
 
     @Test
     void previousFromFirstSongGoesToLast() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2, SONG_3), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2), item(SONG_3)), ShuffleMode.RANDOM);
         assertThat(state.previous().currentSongId()).isEqualTo(SONG_3);
     }
 
     @Test
     void previousGoesToPreviousSong() {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2, SONG_3), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2), item(SONG_3)), ShuffleMode.RANDOM);
         state.next();                                              // → SONG_2
         assertThat(state.previous().currentSongId()).isEqualTo(SONG_1);
     }
@@ -188,19 +192,19 @@ class PlayerStateTest {
 
     @Test
     void seekNegativePositionThrows() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         assertThatThrownBy(() -> state.seek(-1)).isInstanceOf(PlayerStateException.class);
     }
 
     @Test
     void seekUpdatesPosition() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         assertThat(state.seek(42).positionSeconds()).isEqualTo(42);
     }
 
     @Test
     void seekToZeroIsValid() {
-        state.load(PLAYLIST_ID, List.of(SONG_1), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1)), ShuffleMode.RANDOM);
         state.seek(30);
         assertThat(state.seek(0).positionSeconds()).isZero();
     }
@@ -209,7 +213,7 @@ class PlayerStateTest {
 
     @Test
     void concurrentNextCallsNeverProduceInvalidState() throws InterruptedException {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2, SONG_3), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2), item(SONG_3)), ShuffleMode.RANDOM);
         int threadCount = 50;
         CountDownLatch latch = new CountDownLatch(threadCount);
         List<Throwable> errors = new CopyOnWriteArrayList<>();
@@ -227,7 +231,7 @@ class PlayerStateTest {
             });
         }
 
-        latch.await(5, TimeUnit.SECONDS);
+        assertThat(latch.await(5, TimeUnit.SECONDS)).as("all threads completed within timeout").isTrue();
         exec.shutdown();
 
         assertThat(errors).isEmpty();
@@ -237,7 +241,7 @@ class PlayerStateTest {
 
     @Test
     void concurrentStopAndNextNeverLeaveInvalidState() throws InterruptedException {
-        state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.RANDOM);
+        state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
         int threadCount = 30;
         CountDownLatch latch = new CountDownLatch(threadCount);
         List<Throwable> errors = new CopyOnWriteArrayList<>();
@@ -248,7 +252,7 @@ class PlayerStateTest {
             exec.submit(() -> {
                 try {
                     if (idx % 3 == 0) state.stop();
-                    else if (idx % 3 == 1) state.load(PLAYLIST_ID, List.of(SONG_1, SONG_2), ShuffleMode.RANDOM);
+                    else if (idx % 3 == 1) state.load(PLAYLIST_ID, List.of(item(SONG_1), item(SONG_2)), ShuffleMode.RANDOM);
                     else state.next();
                 } catch (PlayerStateException ignored) {
                     // expected when calling next() after stop() — valid race
@@ -260,7 +264,7 @@ class PlayerStateTest {
             });
         }
 
-        latch.await(5, TimeUnit.SECONDS);
+        assertThat(latch.await(5, TimeUnit.SECONDS)).as("all threads completed within timeout").isTrue();
         exec.shutdown();
 
         assertThat(errors).isEmpty();

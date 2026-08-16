@@ -1,5 +1,6 @@
 package com.songplayer.application.shuffle;
 
+import com.songplayer.persistence.entity.GenreEntity;
 import com.songplayer.persistence.entity.PlaylistItemEntity;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +21,7 @@ public class GenreBalancedShuffleStrategy implements ShuffleStrategy {
         Map<String, List<UUID>> byGenre = new LinkedHashMap<>();
         for (PlaylistItemEntity item : items) {
             String genre = item.getSong().getGenres().stream()
-                    .map(g -> g.getName())
+                    .map(GenreEntity::getName)
                     .min(String::compareTo)
                     .orElse("__unknown__");
             byGenre.computeIfAbsent(genre, k -> new ArrayList<>()).add(item.getSong().getId());

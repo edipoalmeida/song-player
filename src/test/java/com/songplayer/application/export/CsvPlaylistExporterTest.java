@@ -120,8 +120,7 @@ class CsvPlaylistExporterTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static List<String> lines(String body) {
-        return Arrays.asList(body.split("\n", -1))
-                .stream().filter(l -> !l.isEmpty()).toList();
+        return Arrays.stream(body.split("\n", -1)).filter(l -> !l.isEmpty()).toList();
     }
 
     private static PlaylistItemEntity buildItem(int position, String title,
