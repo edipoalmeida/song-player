@@ -141,6 +141,10 @@ Authorization: Basic YWRtaW46YWRtaW4=
 POST http://localhost:8080/api/v1/player/play
 Authorization: Basic YWRtaW46YWRtaW4=
 
+### PLAY AT 2× SPEED (1 real second = 2 song-seconds)
+POST http://localhost:8080/api/v1/player/play-2x
+Authorization: Basic YWRtaW46YWRtaW4=
+
 ### PAUSE PLAYBACK
 POST http://localhost:8080/api/v1/player/pause
 Authorization: Basic YWRtaW46YWRtaW4=
